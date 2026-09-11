@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+examples/out/
+/tmp/
+.DS_Store
+*.blend1
+.repo-creation-review-round-*.json
