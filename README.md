@@ -4,7 +4,7 @@
 
 ![Creality Print Skill](assets/banner.png)
 
-[![ci](https://github.com/KeWang0622/creality-print-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/KeWang0622/creality-print-skill/actions/workflows/ci.yml) ![python](https://img.shields.io/badge/python-3.9%E2%80%933.13-blue) ![deps](https://img.shields.io/badge/dependencies-none-success) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+![python](https://img.shields.io/badge/python-3.9%E2%80%933.13-blue) ![deps](https://img.shields.io/badge/dependencies-none-success) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 [Skill](SKILL.md) · [3MF anatomy](reference/3mf-anatomy.md) · [Pitfalls 踩坑](reference/pitfalls.md) · [Geometry sources](reference/geometry-sources.md) · [Compatibility](reference/compatibility.md) · [Issues](https://github.com/KeWang0622/creality-print-skill/issues)
 
