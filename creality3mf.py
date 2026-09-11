@@ -406,7 +406,15 @@ class Finding:
     message: str
 
     def __str__(self) -> str:
-        return f"{ {'ok': '✅', 'warn': '⚠️ ', 'fail': '❌'}[self.level]} {self.part}: {self.message}"
+        return f"{_MARKS()[self.level]} {self.part}: {self.message}"
+
+
+def _MARKS() -> dict:
+    """Emoji markers where the console can show them (Windows cp1252 cannot), ASCII otherwise."""
+    enc = (getattr(sys.stdout, "encoding", None) or "ascii").lower()
+    if "utf" in enc:
+        return {"ok": "✅", "warn": "⚠️ ", "fail": "❌"}
+    return {"ok": "[ok]  ", "warn": "[warn]", "fail": "[FAIL]"}
 
 
 def mesh_report(part: Part) -> dict:

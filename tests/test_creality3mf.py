@@ -205,8 +205,16 @@ class CheckTests(unittest.TestCase):
         msgs = [str(f) for f in c3.check_parts([tiny, a, b], c3.Bed(12, 12, 12, "Bed"), slots=2)]
         self.assertTrue(any("metres or inches" in m for m in msgs))
         self.assertTrue(any("overlap" in m and "a+b" in m for m in msgs))
-        self.assertTrue(any("❌ b: extruder 3" in m for m in msgs))
-        self.assertTrue(any("❌ assembly" in m and "does not fit" in m for m in msgs))
+        self.assertTrue(any("b: extruder 3" in m for m in msgs))
+        self.assertTrue(any("assembly" in m and "does not fit" in m for m in msgs))
+
+    def test_ascii_fallback_when_console_cannot_encode_emoji(self):
+        import io
+        from unittest import mock
+        with mock.patch.object(c3.sys, "stdout", io.TextIOWrapper(io.BytesIO(), encoding="cp1252")):
+            self.assertEqual(str(c3.Finding("fail", "x", "m")), "[FAIL] x: m")
+        with mock.patch.object(c3.sys, "stdout", io.TextIOWrapper(io.BytesIO(), encoding="utf-8")):
+            self.assertTrue(str(c3.Finding("ok", "x", "m")).startswith("✅"))
 
     def test_check_cli_exit_code(self):
         with tempfile.TemporaryDirectory() as d:
