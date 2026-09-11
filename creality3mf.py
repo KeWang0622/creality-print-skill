@@ -6,6 +6,7 @@ The same 3MF dialect is read by Bambu Studio and OrcaSlicer (Creality Print is a
 
     python3 creality3mf.py build  -o out.3mf --printer "Creality K2 Pro" \
         --part plate.stl:1 --part logo.stl:2 --filament "#000000" --filament "#FFFFFF"
+    python3 creality3mf.py check plate.stl:1 logo.stl:2 --printer "Creality K2 Pro" --slots 2
     python3 creality3mf.py inspect out.3mf
     python3 creality3mf.py printers
 
@@ -377,6 +378,7 @@ def build_3mf(parts: list[Part], out_path: str, bed: Bed, *, title: str = "model
         # the loader resets such extruders to 0 (object default) — the colour would silently vanish
         raise ValueError(f"parts reference extruder {max_ext} but the project defines only {slot_count} filaments")
     date = date or datetime.date.today().isoformat()
+    warnings += [str(f) for f in check_parts(placed) if f.level == "warn"]
 
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("[Content_Types].xml", CONTENT_TYPES)
@@ -394,6 +396,76 @@ def build_3mf(parts: list[Part], out_path: str, bed: Bed, *, title: str = "model
             warnings.append("filament colours live in project settings; pass --project-from to embed them "
                             "(without it this is a model-only 3MF and colours come from the slicer's current slots)")
     return BuildResult(out_path, placed, lo, hi, centre, warnings)
+
+
+# ----------------------------------------------------------------------------- check
+@dataclass
+class Finding:
+    level: str      # "ok" | "warn" | "fail"
+    part: str
+    message: str
+
+    def __str__(self) -> str:
+        return f"{ {'ok': '✅', 'warn': '⚠️ ', 'fail': '❌'}[self.level]} {self.part}: {self.message}"
+
+
+def mesh_report(part: Part) -> dict:
+    """Edge-based topology stats: watertight (every edge shared by two faces) and consistent winding."""
+    directed: dict[tuple[int, int], int] = {}
+    for a, b, c in part.triangles:
+        for e in ((a, b), (b, c), (c, a)):
+            directed[e] = directed.get(e, 0) + 1
+    undirected: dict[tuple[int, int], int] = {}
+    for (a, b), n in directed.items():
+        key = (a, b) if a < b else (b, a)
+        undirected[key] = undirected.get(key, 0) + n
+    open_edges = sum(1 for n in undirected.values() if n != 2)
+    flipped = sum(1 for (a, b), n in directed.items() if n > 1 or directed.get((b, a), 0) == 0)
+    lo, hi = part.bbox()
+    return {"triangles": len(part.triangles), "open_edges": open_edges, "flipped_edges": flipped,
+            "watertight": open_edges == 0, "winding_consistent": open_edges == 0 and flipped == 0,
+            "size_mm": [round(hi[i] - lo[i], 3) for i in range(3)]}
+
+
+def _boxes_overlap(a: Part, b: Part, tol: float = 0.05) -> bool:
+    (alo, ahi), (blo, bhi) = a.bbox(), b.bbox()
+    return all(min(ahi[i], bhi[i]) - max(alo[i], blo[i]) > tol for i in range(3))
+
+
+def check_parts(parts: list[Part], bed: Bed | None = None, slots: int = 0) -> list[Finding]:
+    """Printability findings for a set of parts. `fail` = do not ship; `warn` = tell the user."""
+    out: list[Finding] = []
+    for p in parts:
+        r = mesh_report(p)
+        size = max(r["size_mm"])
+        if size < 3:
+            out.append(Finding("warn", p.name, f"largest dimension {size:g} mm — are the units metres or inches?"))
+        elif bed and size > max(bed.width, bed.depth, bed.height) * 4:
+            out.append(Finding("warn", p.name, f"largest dimension {size:g} mm — looks like a unit mix-up"))
+        if not r["watertight"]:
+            out.append(Finding("warn", p.name, f"not watertight ({r['open_edges']} open edges); slicers usually "
+                                               "repair this, Blender: Mesh > Clean Up > Merge by Distance"))
+        elif not r["winding_consistent"]:
+            out.append(Finding("warn", p.name, f"{r['flipped_edges']} inconsistent-winding edges (flipped normals)"))
+        else:
+            out.append(Finding("ok", p.name, f"watertight, {r['triangles']} triangles, "
+                                             f"{'x'.join(f'{v:g}' for v in r['size_mm'])} mm"))
+        if slots and p.extruder > slots:
+            out.append(Finding("fail", p.name, f"extruder {p.extruder} but only {slots} filament slots"))
+    for i, a in enumerate(parts):
+        for b in parts[i + 1:]:
+            if _boxes_overlap(a, b):
+                out.append(Finding("warn", f"{a.name}+{b.name}", "bounding boxes overlap — parts should touch, "
+                                                                "not overlap (overlap prints double walls)"))
+    if bed:
+        lo, hi = _group_bbox(parts)
+        w, d, h = (hi[i] - lo[i] for i in range(3))
+        if w > bed.width + EPS or d > bed.depth + EPS or h > bed.height + EPS:
+            out.append(Finding("fail", "assembly", f"{w:g}x{d:g}x{h:g} mm does not fit "
+                                                   f"{bed.printer_model or 'bed'} {bed.width:g}x{bed.depth:g}x{bed.height:g}"))
+        else:
+            out.append(Finding("ok", "assembly", f"{w:g}x{d:g}x{h:g} mm fits {bed.printer_model or 'bed'}"))
+    return out
 
 
 # ----------------------------------------------------------------------------- inspect
@@ -521,6 +593,14 @@ def _cmd_inspect(a: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_check(a: argparse.Namespace) -> int:
+    bed = Bed.from_printer(a.printer, a.nozzle) if a.printer else None
+    findings = check_parts([load_part(s) for s in a.part], bed, a.slots)
+    for f in findings:
+        print(f)
+    return 1 if any(f.level == "fail" for f in findings) else 0
+
+
 def _cmd_printers(a: argparse.Namespace) -> int:
     for name, p in sorted(load_printers().items()):
         if a.filter and a.filter.lower() not in name.lower():
@@ -555,6 +635,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     i.add_argument("file")
     i.add_argument("--json", action="store_true")
     i.set_defaults(fn=_cmd_inspect)
+
+    c = sub.add_parser("check", help="printability findings for parts (watertight, units, overlap, slots, bed)")
+    c.add_argument("part", nargs="+", metavar="MESH[:EXTRUDER[:NAME]]")
+    c.add_argument("--printer")
+    c.add_argument("--nozzle", default="0.4")
+    c.add_argument("--slots", type=int, default=0, help="filament slots available (0 = don't check)")
+    c.set_defaults(fn=_cmd_check)
 
     p = sub.add_parser("printers", help="list known Creality printers and bed sizes")
     p.add_argument("filter", nargs="?")

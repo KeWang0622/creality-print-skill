@@ -183,6 +183,38 @@ class BuildTests(unittest.TestCase):
             self.build(project_settings={"filament_colour": ["#fff"], "filament_type": ["PLA"]})
 
 
+class CheckTests(unittest.TestCase):
+    def test_watertight_box_is_ok(self):
+        r = c3.mesh_report(c3.Part("b", *box(0, 0, 0, 10, 10, 10)))
+        self.assertTrue(r["watertight"] and r["winding_consistent"])
+        self.assertEqual(r["size_mm"], [10, 10, 10])
+
+    def test_missing_face_and_flipped_face_are_reported(self):
+        v, t = box(0, 0, 0, 10, 10, 10)
+        holed = c3.Part("h", v, t[:-1])
+        self.assertFalse(c3.mesh_report(holed)["watertight"])
+        flipped = c3.Part("f", v, t[:-1] + [tuple(reversed(t[-1]))])
+        r = c3.mesh_report(flipped)
+        self.assertTrue(r["watertight"])
+        self.assertFalse(r["winding_consistent"])
+
+    def test_findings_cover_units_overlap_slots_and_bed(self):
+        tiny = c3.Part("tiny", *box(0, 0, 0, 0.1, 0.1, 0.1), 1)
+        a = c3.Part("a", *box(0, 0, 0, 10, 10, 10), 1)
+        b = c3.Part("b", *box(5, 5, 5, 15, 15, 15), 3)
+        msgs = [str(f) for f in c3.check_parts([tiny, a, b], c3.Bed(12, 12, 12, "Bed"), slots=2)]
+        self.assertTrue(any("metres or inches" in m for m in msgs))
+        self.assertTrue(any("overlap" in m and "a+b" in m for m in msgs))
+        self.assertTrue(any("❌ b: extruder 3" in m for m in msgs))
+        self.assertTrue(any("❌ assembly" in m and "does not fit" in m for m in msgs))
+
+    def test_check_cli_exit_code(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_binary_stl(f"{d}/p.stl", *box(0, 0, 0, 20, 20, 2))
+            self.assertEqual(c3.main(["check", f"{d}/p.stl:1", "--printer", "Creality K2 Pro", "--slots", "2"]), 0)
+            self.assertEqual(c3.main(["check", f"{d}/p.stl:3", "--slots", "2"]), 1)
+
+
 class CliTests(unittest.TestCase):
     def test_build_and_inspect_via_cli(self):
         with tempfile.TemporaryDirectory() as d:

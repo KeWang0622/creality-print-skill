@@ -4,6 +4,10 @@
 
 ![Creality Print Skill](assets/banner.png)
 
+[![ci](https://github.com/KeWang0622/creality-print-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/KeWang0622/creality-print-skill/actions/workflows/ci.yml) ![python](https://img.shields.io/badge/python-3.9%E2%80%933.13-blue) ![deps](https://img.shields.io/badge/dependencies-none-success) ![license](https://img.shields.io/badge/license-MIT-lightgrey)
+
+[Skill](SKILL.md) · [3MF anatomy](reference/3mf-anatomy.md) · [Pitfalls 踩坑](reference/pitfalls.md) · [Geometry sources](reference/geometry-sources.md) · [Compatibility](reference/compatibility.md) · [Issues](https://github.com/KeWang0622/creality-print-skill/issues)
+
 An agent skill (`SKILL.md`) plus a zero-dependency tool (`creality3mf.py` + `data/printers.json`) that turns STL/OBJ parts or a Blender scene into a `.3mf` that Creality Print opens as a single multi-colour object, centred on the bed, with every part already assigned to a CFS slot. Bambu Studio and OrcaSlicer share the loader this was checked against (not yet verified on them — see the compatibility matrix).
 
 ![HELLO nameplate: black plate, raised white lettering](assets/example-nameplate.png)
@@ -25,7 +29,7 @@ Open that file in Creality Print with **File → Open Project**, put black in CF
 
 ## Use it
 
-**As a Claude Code / agent skill** — copy or symlink this folder into `~/.claude/skills/creality-print/` (or your agent's skill directory). `SKILL.md` carries the workflow, the design rules, the Blender recipe, the CLI gotchas and a delivery checklist; the scripts do the work.
+**As a Claude Code / agent skill** — `npx skills add KeWang0622/creality-print-skill` (Vercel Skills CLI), or copy/symlink this folder into `~/.claude/skills/creality-print/`. `SKILL.md` carries the workflow, the design rules, the Blender recipe, the CLI gotchas and a delivery checklist; the scripts do the work.
 
 **As a tool**
 
@@ -35,6 +39,7 @@ python3 creality3mf.py build -o model.3mf --printer "Creality K2 Plus" \
     --part plate.stl:1:Plate --part body.stl:2:Body --part text.stl:2:Lettering \
     --filament "#000000" --filament "#FFFFFF" --project-from a_file_your_creality_print_saved.3mf
 
+python3 creality3mf.py check plate.stl:1 body.stl:2 --printer "Creality K2 Plus" --slots 2   # watertight / units / overlap / fit
 python3 creality3mf.py inspect model.3mf        # objects, parts, extruders, bbox, sliced?
 python3 creality3mf.py printers                 # 55 Creality machines, beds from vendor profiles
 ```
@@ -46,6 +51,8 @@ blender -b --python examples/blender_text_plate.py -- --text "MAKER" --out /tmp/
     --font "/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf"
 ```
 Material names `E1_…` / `E2_…` (or an object property `extruder`) decide the slot; `scripts/blender_export_parts.py` writes STL parts + `parts.json` for any scene.
+
+**From CadQuery / OpenSCAD / build123d / trimesh / text-to-cad** — anything that writes STL in mm is a valid input; snippets in [`reference/geometry-sources.md`](reference/geometry-sources.md). In a [text-to-cad](https://github.com/earthtojake/text-to-cad) pipeline this is the per-part-slot stage between `$cad` and the slicer.
 
 ## Why this exists
 
@@ -73,15 +80,17 @@ One object with `<part>` children is what Creality Print writes itself; per-part
 | [`reference/pitfalls.md`](reference/pitfalls.md) | 20 real failures and fixes, bilingual |
 | [`reference/design-rules.md`](reference/design-rules.md) | wall/stroke/height minimums, purge, slot order, CFS limits |
 | [`reference/blender.md`](reference/blender.md) | headless extension enabling, units, text, splitting |
+| [`reference/geometry-sources.md`](reference/geometry-sources.md) | CadQuery / OpenSCAD / build123d / trimesh / manifold as inputs, what each lacks |
 | [`reference/creality-print-cli.md`](reference/creality-print-cli.md) | options, version gate, known crashes |
 | [`reference/compatibility.md`](reference/compatibility.md) | verified vs expected, per slicer version |
 | [`reference/sources.md`](reference/sources.md) | every citation |
 
 ## Roadmap
 
+- a photo of the real K2 Pro print next to the `inspect` block
 - `Slic3r_PE_model.config` + `slic3rpe:extruder` so PrusaSlicer keeps part colours
-- fixture 3MFs with a `check` command that reproduces Creality Print's `--info` without the binary
-- Windows / Linux CLI paths and a verified Bambu Studio row in the compatibility matrix
+- fixture 3MFs verified in CI against a recorded Creality Print `--info`; verified Bambu Studio / OrcaSlicer rows
+- minimum stroke-width measurement in `check` (text-to-cad's dfam-check style)
 
 ## License and credits
 
@@ -104,6 +113,8 @@ bash scripts/dev.sh install
 bash scripts/dev.sh example       # 生成 examples/out/nameplate.3mf（黑底板 + 凸起白字 HELLO）
 python3 creality3mf.py inspect examples/out/nameplate.3mf
 ```
+
+零件先过一遍 `python3 creality3mf.py check 底板.stl:1 文字.stl:2 --printer "Creality K2 Pro" --slots 2`（水密 / 单位 / 重叠 / 槽位 / 平台）。
 
 在 Creality Print 里 **文件 → 打开工程**，CFS 1 号槽放黑、2 号槽放白，切片即可。
 

@@ -58,6 +58,9 @@ part assignment), or printers from other vendors that do not read Bambu-style 3M
    when you need real fonts, booleans, or to split/repair an existing mesh. Rules in §4. Raised features sit *on* a surface (z = top), inlays
    need a matching pocket; do not leave a part floating.
 5. **Export parts** — Blender: `scripts/blender_export_parts.py` (STL, mm, manifest with slots).
+   CadQuery / OpenSCAD / build123d / trimesh snippets: `reference/geometry-sources.md`.
+   Then `python3 creality3mf.py check a.stl:1 b.stl:2 --printer … --slots N` — fix every ❌,
+   read every ⚠️ (non-watertight, unit mix-up, overlapping parts).
 6. **Assemble** — `python3 creality3mf.py build -o out.3mf --printer "Creality K2 Pro" \
    --part Plate.stl:1 --part Lettering.stl:2 [--filament "#000000" --filament "#FFFFFF" \
    --project-from users_own.3mf]`. The tool centres the group on the bed, drops it to z = 0,
@@ -141,8 +144,16 @@ blender -b --python examples/blender_text_plate.py -- --text "HELLO" --out /tmp/
 | PrusaSlicer | ⚠️ | needs `Slic3r_PE_model.config` (not written) — import as plain 3MF |
 | Cura | ⚠️ | reads geometry only; colours lost |
 
-## 9. Delivery checklist
+## 9. Hand-off rules
 
+- Upstream: any CAD skill/tool that writes STL (`$cad` from text-to-cad, CadQuery, OpenSCAD, Blender).
+  Downstream: the human's slicer. This skill never sends anything to a printer and never
+  edits G-code; default is dry-run — produce the 3MF, verify, hand over.
+- Always return the artifact path plus the `inspect` block, and the source geometry.
+
+## 10. Delivery checklist
+
+- [ ] `check` has no ❌; every ⚠️ was either fixed or explained to the user
 - [ ] `inspect` shows 1 object, N parts, expected extruders, bbox inside bed, `sliced: False`
 - [ ] every part is watertight or the slicer repaired it (`--info` → `manifold = yes`)
 - [ ] filaments listed = slots used; slot 1 holds the plate/base colour
@@ -154,7 +165,8 @@ blender -b --python examples/blender_text_plate.py -- --text "HELLO" --out /tmp/
 - 目标交付物：**一个物体、多个 part、每个 part 绑定一个耗材槽** 的 3MF，落在平台内，用户打开即切片。
 - 颜色 = 耗材槽号，不是 RGB；文件里的颜色只是切片软件的显示，真正用哪卷料由 CFS 映射决定。
 - 千万不要输出多个独立物体（会被判"太近"、可能被丢、会被分别摆放）。
-- 流程：`inspect` 输入 → 确认机型（`printers`）→ 拆 part → Blender/Python 建几何（毫米）→
-  导出 STL → `creality3mf.py build` → `inspect` 验证 → 交付并说明"打开工程、对应槽位、擦料塔"。
+- 流程：`inspect` 输入 → 确认机型（`printers`）→ 拆 part → Blender/Python/CadQuery/OpenSCAD 建几何（毫米）→
+  导出 STL → `check` 排查 → `creality3mf.py build` → `inspect` 验证 → 交付并说明"打开工程、对应槽位、擦料塔"。
+- 只产文件不发打印、不改 G-code；把 3MF 路径、`inspect` 输出和源几何一起交给用户。
 - 0.4 喷嘴规则：笔画 ≥ 0.9 mm，凸字 0.8–1.0 mm，字高 ≥ 10 mm 粗体，孤立小点 ≥ 2 mm。
 - CLI 坑：版本门（`--allow-newer-file`）、`--load-filament-ids` 按文件不按 part、GUI 开着时 CLI 崩。

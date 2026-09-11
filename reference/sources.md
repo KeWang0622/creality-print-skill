@@ -45,6 +45,15 @@ Everything in this repo traces to one of these. Version-specific claims name the
 - HLH: FDM design guide — https://hlhrapid.com/knowledge/design-guide-fdm-3d-printing/
 - Bambu: prime tower, flushing, multi-colour, split to parts, assemble — https://wiki.bambulab.com/en/software/bambu-studio/parameter/prime-tower · https://wiki.bambulab.com/en/software/bambu-studio/reduce-wasting-during-filament-change · https://wiki.bambulab.com/en/software/bambu-studio/multi-color-printing · https://wiki.bambulab.com/en/software/bambu-studio/split-to-objects-parts · https://wiki.bambulab.com/en/bambu-studio/assemble-tool
 
+## Geometry tools surveyed (2026-09-11)
+- OpenSCAD `text()` / colour-3MF discussion — https://openscad.org/cheatsheet/ · https://github.com/openscad/openscad/issues/5849
+- CadQuery `Workplane.text` — https://github.com/CadQuery/cadquery/blob/master/cadquery/cq.py
+- build123d `Mesher` (generic 3MF) — https://github.com/gumyr/build123d/blob/dev/src/build123d/mesher.py
+- trimesh watertight/repair, 3MF export (geometry only) — https://github.com/mikedh/trimesh/blob/main/trimesh/exchange/threemf.py
+- manifold (guaranteed-manifold booleans; 3MF export wasm-only) — https://github.com/elalish/manifold
+- text-to-cad skills (`$cad`, `dfam-check`, `gcode`) — https://github.com/earthtojake/text-to-cad
+- OrcaSlicer CLI wiki (shares flags with Creality Print) — https://github.com/OrcaSlicer/OrcaSlicer/wiki/cli_actions
+
 ## Prior art (what this repo does not redo)
 - codeofaxel/Kiln — MCP server; multi-part 3MF verified on Bambu Studio, Creality/CFS marked hardware-unverified — https://github.com/codeofaxel/Kiln
 - DMontgomery40/bambu-printer-mcp — template-cloning 3MF builder, Bambu only — https://github.com/DMontgomery40/bambu-printer-mcp
