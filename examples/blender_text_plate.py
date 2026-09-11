@@ -1,6 +1,6 @@
 """Blender headless example: plate + real-font raised text → parts → multi-colour 3MF.
 
-    blender -b --python examples/blender_text_plate.py -- --text "To Lindsey" --out /tmp/plate --build \
+    blender -b --python examples/blender_text_plate.py -- --text "MAKER" --out /tmp/plate --build \
         [--font "/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf"] [--printer "Creality K2 Pro"]
 
 Design rules baked in for a 0.4 mm nozzle: text raised 1.0 mm, cap height 14 mm, bold face.

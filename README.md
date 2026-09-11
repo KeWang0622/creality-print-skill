@@ -4,7 +4,7 @@
 
 ![Creality Print Skill](assets/banner.png)
 
-An agent skill (`SKILL.md`) plus a zero-dependency tool (`creality3mf.py`) that turns STL/OBJ parts or a Blender scene into a `.3mf` that Creality Print opens as a single multi-colour object, centred on the bed, with every part already assigned to a CFS slot. Bambu Studio and OrcaSlicer read the same dialect.
+An agent skill (`SKILL.md`) plus a zero-dependency tool (`creality3mf.py` + `data/printers.json`) that turns STL/OBJ parts or a Blender scene into a `.3mf` that Creality Print opens as a single multi-colour object, centred on the bed, with every part already assigned to a CFS slot. Bambu Studio and OrcaSlicer share the loader this was checked against (not yet verified on them — see the compatibility matrix).
 
 ![HELLO nameplate: black plate, raised white lettering](assets/example-nameplate.png)
 
@@ -42,7 +42,7 @@ python3 creality3mf.py printers                 # 55 Creality machines, beds fro
 **From Blender (headless)**
 
 ```bash
-blender -b --python examples/blender_text_plate.py -- --text "To Lindsey" --out /tmp/p --build \
+blender -b --python examples/blender_text_plate.py -- --text "MAKER" --out /tmp/p --build \
     --font "/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf"
 ```
 Material names `E1_…` / `E2_…` (or an object property `extruder`) decide the slot; `scripts/blender_export_parts.py` writes STL parts + `parts.json` for any scene.
@@ -85,7 +85,7 @@ One object with `<part>` children is what Creality Print writes itself; per-part
 
 ## License and credits
 
-MIT. Format knowledge from [CrealityPrint](https://github.com/CrealityOfficial/CrealityPrint) / [BambuStudio](https://github.com/bambulab/BambuStudio) source (AGPL-3.0, not vendored) and the [3MF Consortium](https://3mf.io) specs; Blender path via the [3MF Import/Export extension](https://extensions.blender.org/add-ons/threemf-io/). Prior art that this does not repeat: [Kiln](https://github.com/codeofaxel/Kiln), [k2-3d-printing-skill](https://github.com/woliveiras/k2-3d-printing-skill), [blender-mcp](https://github.com/ahujasid/blender-mcp).
+MIT. Format knowledge from [CrealityPrint](https://github.com/CrealityOfficial/CrealityPrint) / [BambuStudio](https://github.com/bambulab/BambuStudio) source (AGPL-3.0, not vendored) and the [3MF Consortium](https://3mf.io) specs; Blender path via the [3MF Import/Export extension](https://extensions.blender.org/add-ons/threemf-io/). Prior art that this does not repeat: [Kiln](https://github.com/codeofaxel/Kiln) and [bambu-printer-mcp](https://github.com/DMontgomery40/bambu-printer-mcp) write multi-part 3MF for Bambu Studio but are MCP servers (not vendorable into a skill), clone templates rather than write the structure, and do not cover Creality's loader, `creality.config` or the CLI version gate; [k2-3d-printing-skill](https://github.com/woliveiras/k2-3d-printing-skill) documents the K2 GUI but has no writer; [blender-mcp](https://github.com/ahujasid/blender-mcp) drives Blender live and knows nothing about 3MF.
 
 ---
 
@@ -123,7 +123,7 @@ python3 creality3mf.py build -o model.3mf --printer "Creality K2 Plus" \
 
 ```bash
 blender --command extension install ThreeMF_io
-blender -b --python examples/blender_text_plate.py -- --text "To Lindsey" --out /tmp/p --build
+blender -b --python examples/blender_text_plate.py -- --text "MAKER" --out /tmp/p --build
 ```
 材质名 `E1_xxx` / `E2_xxx` 决定槽位。无头脚本里要自己 `addon_utils.enable("bl_ext.blender_org.ThreeMF_io")`。
 
@@ -137,4 +137,4 @@ blender -b --python examples/blender_text_plate.py -- --text "To Lindsey" --out 
 
 ## 兼容
 
-Creality Print 6.x–7.2 ✅（已验证）· Bambu Studio / OrcaSlicer ✅（同一加载器）· PrusaSlicer / Cura 只读几何。详见 [`reference/compatibility.md`](reference/compatibility.md)。
+Creality Print 7.2.1 ✅ 已验证（GUI + CLI）· 6.x / Bambu Studio / OrcaSlicer：同一加载器代码，未逐一验证 · PrusaSlicer / Cura 只读几何。详见 [`reference/compatibility.md`](reference/compatibility.md)。

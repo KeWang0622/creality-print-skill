@@ -159,6 +159,9 @@ def load_part(spec: str, default_extruder: int = 1) -> Part:
 
 # ----------------------------------------------------------------------------- printers
 def load_printers() -> dict:
+    if not os.path.exists(PRINTERS_JSON):
+        raise FileNotFoundError(f"{PRINTERS_JSON} missing — keep data/printers.json next to creality3mf.py, "
+                                "or pass --bed W D --height H instead of --printer")
     with open(PRINTERS_JSON, encoding="utf-8") as f:
         return json.load(f)["printers"]
 
@@ -310,6 +313,8 @@ def load_project_settings(source: str) -> dict:
     """Read a project_settings.config dict from a .3mf (Creality/Bambu/Orca) or a bare .json."""
     if source.lower().endswith(".3mf"):
         with zipfile.ZipFile(source) as z:
+            if "Metadata/project_settings.config" not in z.namelist():
+                raise ValueError(f"{source}: model-only 3MF, it carries no project settings")
             return json.loads(z.read("Metadata/project_settings.config"))
     with open(source, encoding="utf-8") as f:
         return json.load(f)
@@ -560,7 +565,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         ap.error("build needs --printer or --bed W D")
     try:
         return a.fn(a)
-    except (ValueError, KeyError, FileNotFoundError) as e:
+    except zipfile.BadZipFile as e:
+        print(f"error: not a 3MF (zip) file: {e}", file=sys.stderr)
+        return 1
+    except (ValueError, KeyError, FileNotFoundError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
 

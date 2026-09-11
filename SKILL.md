@@ -53,14 +53,17 @@ part assignment), or printers from other vendors that do not read Bambu-style 3M
    Creality's own vendor profiles (`data/printers.json`). Ask if unknown; never guess a bed size.
 3. **Decide the parts** — one part per colour region. Typical: `Plate` (slot 1), `Body` (slot 2),
    `Lettering` (slot 2 or 3). Parts may touch; avoid overlapping volumes (double walls).
-4. **Build geometry in millimetres** — Blender (`examples/blender_text_plate.py`) or pure Python
-   (`examples/nameplate.py`). Rules in §4. Raised features sit *on* a surface (z = top), inlays
+4. **Build geometry in millimetres** — pure Python (`examples/nameplate.py`) when the parts are
+   boxes/cylinders/pixel text and Blender is not installed; Blender (`examples/blender_text_plate.py`)
+   when you need real fonts, booleans, or to split/repair an existing mesh. Rules in §4. Raised features sit *on* a surface (z = top), inlays
    need a matching pocket; do not leave a part floating.
 5. **Export parts** — Blender: `scripts/blender_export_parts.py` (STL, mm, manifest with slots).
 6. **Assemble** — `python3 creality3mf.py build -o out.3mf --printer "Creality K2 Pro" \
    --part Plate.stl:1 --part Lettering.stl:2 [--filament "#000000" --filament "#FFFFFF" \
    --project-from users_own.3mf]`. The tool centres the group on the bed, drops it to z = 0,
-   and refuses to write a file that does not fit.
+   and refuses to write a file that does not fit. No `--project-from` at hand? Ship a model-only
+   3MF (omit `--filament`); the user's current printer/filament presets apply and part slots still
+   work. Ask the user for any 3MF their Creality Print saved if they want colours embedded.
 7. **Verify** — `python3 creality3mf.py inspect out.3mf`: exactly one object, all parts listed
    with the intended extruder, bbox inside the bed. If Creality Print CLI is available *and the
    GUI is closed*, `CrealityPrint --info out.3mf` must exit 0 (see §6).
@@ -131,9 +134,10 @@ blender -b --python examples/blender_text_plate.py -- --text "HELLO" --out /tmp/
 
 | Slicer | Reads one-object/N-part `extruder` | Notes |
 |---|---|---|
-| Creality Print 6.x–7.2 | ✅ | primary target; adds `Metadata/creality.config` |
-| Bambu Studio 1.x–2.x | ✅ | same loader lineage; ignores `creality.config` |
-| OrcaSlicer 2.x | ✅ | same |
+| Creality Print 7.2.1 | ✅ verified (GUI + CLI `--info`) | primary target; adds `Metadata/creality.config` |
+| Creality Print 6.x | expected | same loader; the source template for project settings was a 6.3 file |
+| Bambu Studio 1.x–2.x | expected | same loader lineage; ignores `creality.config` — unverified |
+| OrcaSlicer 2.x | expected | same — unverified |
 | PrusaSlicer | ⚠️ | needs `Slic3r_PE_model.config` (not written) — import as plain 3MF |
 | Cura | ⚠️ | reads geometry only; colours lost |
 

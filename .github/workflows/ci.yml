@@ -16,5 +16,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: bash scripts/dev.sh install
+        env: { PYTHON: python }
       - run: bash scripts/dev.sh test
+        env: { PYTHON: python }
       - run: bash scripts/dev.sh example
+        env: { PYTHON: python }

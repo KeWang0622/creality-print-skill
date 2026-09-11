@@ -4,4 +4,7 @@ examples/out/
 /tmp/
 .DS_Store
 *.blend1
+BRIEF.md
+DISTRIBUTION.md
+LAUNCH/
 .repo-creation-review-round-*.json

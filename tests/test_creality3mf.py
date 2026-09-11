@@ -195,8 +195,15 @@ class CliTests(unittest.TestCase):
             info = c3.inspect_3mf(f"{d}/o.3mf")
         self.assertEqual(info["objects"][0]["parts"][1]["name"], "Top")
 
-    def test_unknown_printer_is_an_error(self):
-        self.assertEqual(c3.main(["build", "-o", os.devnull, "--printer", "Nope", "--part", "x.stl"]), 1)
+    def test_unknown_printer_and_bad_zip_are_clean_errors(self):
+        import contextlib
+        import io
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(c3.main(["build", "-o", os.devnull, "--printer", "Nope", "--part", "x.stl"]), 1)
+            self.assertEqual(c3.main(["inspect", __file__]), 1)
+        self.assertIn("unknown printer", err.getvalue())
+        self.assertIn("not a 3MF", err.getvalue())
 
     def test_printer_table_has_cfs_flagships(self):
         printers = c3.load_printers()
